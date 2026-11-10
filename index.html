@@ -68,6 +68,8 @@ canvas#scratch.gone{transition:opacity .6s;opacity:0;pointer-events:none}
 .memory figcaption{font-size:17px;line-height:1.5;text-align:center;text-wrap:pretty}
 .memory figcaption span{display:block;margin-top:6px;font-family:var(--display);font-weight:800;color:var(--coral)}
 .memory.show{animation:rise .8s ease-out}
+.qphoto{border-top:0;padding-top:0}.qphoto img{max-height:62vh;width:auto;max-width:100%;margin:0 auto}
+#next{align-self:flex-end}
 @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){.memory.show{animation:none}}
 #confetti{position:fixed;inset:0;pointer-events:none;width:100%;height:100%}
@@ -85,7 +87,7 @@ canvas#scratch.gone{transition:opacity .6s;opacity:0;pointer-events:none}
 
   <section class="body" id="intro">
     <p class="msg">Desde a creche que as nossas famílias andam juntas. Hoje é o teu dia, e há aqui uma surpresa só para ti.</p>
-    <p class="rule">Mas o prémio não é de graça. Primeiro tens de acertar em 4 perguntas.</p>
+    <p class="rule">Mas o prémio não é de graça. Primeiro tens de acertar em <span id="total">6</span> perguntas.</p>
     <div class="foot">
       <span class="serial">Bilhete Nº 0001 · Série 2026</span>
       <button class="btn" id="start" type="button">Começar</button>
@@ -98,6 +100,11 @@ canvas#scratch.gone{transition:opacity .6s;opacity:0;pointer-events:none}
     <h2 class="q" id="question"></h2>
     <div class="opts" id="opts"></div>
     <p class="feedback" id="feedback" aria-live="polite"></p>
+    <figure class="memory qphoto" id="qphoto" hidden>
+      <img id="qimg" alt="">
+      <figcaption id="qcap"></figcaption>
+    </figure>
+    <button class="btn" id="next" type="button" hidden>Continuar</button>
   </section>
 
   <section class="body" id="final" hidden>
@@ -127,12 +134,18 @@ canvas#scratch.gone{transition:opacity .6s;opacity:0;pointer-events:none}
 const PERGUNTAS=[
   {q:"Em que ano o teu filho e o Tiago entraram na creche?",o:["2012","2013","2014"],certa:1},
   {q:"Como se chamava a educadora deles?",o:["Sónia","Lurdes","Pipa"],certa:2},
+  {q:"A gangue do Pica do Sete era composta por quantos rapazes?",o:["3","4","7, o nome não engana"],certa:1,
+   foto:"gangue.jpg",alt:"Quatro rapazes de camisa branca, um deles com um chapéu de revisor a dizer Pica 7",legenda:"Diogo, Bruno, Tiago e Tomás.<span>A gangue do Pica do Sete</span>"},
   {q:"Onde foi o último jantar ou passeio das duas famílias juntas?",o:["Na fila do supermercado","Na casa de Santo António","Num restaurante em Marte"],certa:1},
+  {q:"Qual foi a tua grande preocupação a 27 de agosto de 2021?",o:["Que a Fada dos Dentes ficasse sem trocos","O dente dele caiu e eu não estava lá","Que o dente fosse parar à sopa"],certa:1,
+   foto:"dente.jpg",alt:"O filho da Patrícia a sorrir com o espaço do dente que caiu",legenda:"Dente caído, apetite intacto.<span>Estava em boas mãos</span>"},
   {q:"O que é que tem capa, lombada e páginas, mas não é um caderno?",o:["Uma agenda","Um álbum de fotos","Um livro"],certa:2}
 ];
 const ERROS=["Quase! Tenta outra vez.","Hmm, não é bem isso.","Essa não. Mais uma tentativa!"];
 const $=id=>document.getElementById(id);
 let i=0;
+$('total').textContent=PERGUNTAS.length;
+PERGUNTAS.forEach(p=>{if(p.foto)new Image().src=p.foto});
 
 $('start').onclick=()=>{$('intro').hidden=true;$('quiz').hidden=false;show()};
 function show(){
@@ -140,7 +153,7 @@ function show(){
   $('progress').innerHTML=PERGUNTAS.map((_,k)=>`<i class="${k<i?'on':''}"></i>`).join('');
   $('count').textContent=`Pergunta ${i+1} de ${PERGUNTAS.length}`;
   $('question').textContent=p.q;$('feedback').textContent='';$('feedback').className='feedback';
-  $('opts').innerHTML='';
+  $('opts').innerHTML='';$('qphoto').hidden=true;$('next').hidden=true;
   p.o.forEach((t,k)=>{
     const b=document.createElement('button');b.className='opt';b.type='button';b.textContent=t;
     b.onclick=()=>answer(b,k);$('opts').appendChild(b);
@@ -151,7 +164,12 @@ function answer(b,k){
   if(k===p.certa){
     b.classList.add('right');$('feedback').textContent='Certo!';$('feedback').className='feedback good';
     [...$('opts').children].forEach(x=>x.disabled=true);
-    setTimeout(()=>{i++;if(i<PERGUNTAS.length)show();else finish()},800);
+    const go=()=>{i++;if(i<PERGUNTAS.length)show();else finish()};
+    if(p.foto){setTimeout(()=>{
+      $('qimg').src=p.foto;$('qimg').alt=p.alt;$('qcap').innerHTML=p.legenda;
+      const f=$('qphoto');f.hidden=false;f.classList.remove('show');void f.offsetWidth;f.classList.add('show');
+      $('next').hidden=false;$('next').onclick=go;f.scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'});
+    },500)}else setTimeout(go,800);
   }else{
     b.classList.remove('wrong');void b.offsetWidth;b.classList.add('wrong');
     $('feedback').textContent=ERROS[Math.random()*ERROS.length|0];$('feedback').className='feedback bad';
